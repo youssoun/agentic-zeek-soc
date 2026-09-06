@@ -1,0 +1,16 @@
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+# data — never commit datasets (public or not, they live outside git)
+data/
+!data/.gitkeep
+# secrets
+.env
+.env.*
+# editor / OS
+.DS_Store
+.idea/
+.vscode/profile-readme.md
+reports/
