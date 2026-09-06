@@ -16,22 +16,29 @@ def _table(log: str) -> pd.DataFrame:
 def query_logs(ql: dict) -> dict:
     """Run a narrow query over one Zeek log.
     ql = {"log": "conn"|"dns"|"tls"|"http",
-          "where": {"src_addr": "10.0.0.5", ...},   # exact matches, AND-ed
+          "where": {"id.orig_h": "10.0.0.5", ...},  # exact matches, AND-ed
           "columns": [...],                          # optional projection
           "limit": 20}
-    Returns {count, rows} — rows are compact dicts (token-cheap by design).
+    Returns {count, rows} — compact dicts (token-cheap by design).
+    Unknown columns return an explicit error with available column names,
+    so the calling agent self-corrects instead of looping.
     """
     df = _table(ql.get("log", "conn"))
     if df.empty:
-        return {"count": 0, "rows": []}
-    for k, v in (ql.get("where") or {}).items():
-        if k in df.columns:
-            df = df[df[k] == v]
+        return {"count": 0, "rows": [], "available_columns": []}
+    where = ql.get("where") or {}
+    mauvaises = [k for k in where if k not in df.columns]
+    if mauvaises:
+        return {"error": f"unknown column(s) {mauvaises}",
+                "available_columns": list(df.columns)}
+    for k, v in where.items():
+        df = df[df[k] == v]
     cols = list(ql.get("columns") or [c for c in df.columns if df[c].notna().any()][:10])
     # toujours inclure les colonnes filtrées (et 'query'/'ts' quand elles existent)
-    for k in list((ql.get("where") or {}).keys()) + ["ts", "query"]:
+    for k in list(where.keys()) + ["ts", "query"]:
         if k in df.columns and k not in cols:
             cols.insert(0, k)
+    cols = [c for c in cols if c in df.columns]
     return {
         "count": int(len(df)),
         "rows": df[cols].head(ql.get("limit", 20)).fillna("").to_dict("records"),
