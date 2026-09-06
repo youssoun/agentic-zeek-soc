@@ -15,3 +15,10 @@
 
 ## Dataset
 Public Zeek sample logs (see docs/architecture.md § Data). No production data.
+
+## Result (2026-09-06) — PASS
+- Agent: mistral-small via open-mistral-nemo (free tier), function calling, 5 tours
+- Verdict: **suspicious**, confidence high — matches ground truth
+- Evidence cited: 6 queries at exact 300 s intervals, 5 short TCP connections aligned with query timestamps
+- Autonomous finish (write_report called by the agent). Token bill: 7 717
+- Control (benign lead, www.github.com): verdict benign / high — no false positive. Token bill: 7 275
