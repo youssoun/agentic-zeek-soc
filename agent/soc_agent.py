@@ -28,7 +28,7 @@ TOOLS_DECL = [
             "limit": {"type": "integer"}}, "required": ["log"]}}},
     {"type": "function", "function": {
         "name": "enrich_ip",
-        "description": "Cross-log profile of one IP: protocols, peers, DNS names queried.",
+        "description": "Cross-log profile of one IP: protocols, peers, DNS names queried, and beaconing_hints (per domain queried >= 3 times: queries count, interval_min_s, interval_max_s). Tight regular intervals are the classic DNS beaconing signature — read them, do not recompute them.",
         "parameters": {"type": "object", "properties": {"ip": {"type": "string"}}, "required": ["ip"]}}},
     {"type": "function", "function": {
         "name": "write_report",
@@ -47,7 +47,13 @@ SYSTEM = (
     "if a query returns the same result twice, change approach or finish. Finish ONLY by "
     "calling write_report with a markdown note: facts (with counts), verdict (suspicious / "
     "benign / inconclusive), confidence (low/medium/high), and 2-3 next checks. No "
-    "speculation beyond the evidence. If the evidence is insufficient, say inconclusive."
+    "speculation beyond the evidence. If the evidence is insufficient, say inconclusive.\n\n"
+    "Evidence patterns: the enrich_ip tool computes beaconing_hints per domain — interval_min_s "
+    "close to interval_max_s over many queries means machine-regular querying. The DNS beaconing "
+    "pattern is: repeated queries to one domain at regular intervals, followed by repeated short "
+    "connections from the host to the resolved IP. That pattern justifies verdict suspicious. "
+    "A one-off lookup followed by ordinary traffic is benign. Judge on the evidence; do not "
+    "inflate confidence."
 )
 
 DISPATCH = {"query_logs": query_logs, "enrich_ip": enrich_ip, "write_report": write_report}
