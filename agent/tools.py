@@ -1,5 +1,6 @@
 # tools.py — the agent's hands: query_logs(), enrich_ip(), write_report()
 # v0.1: heuristics-first. Every tool returns compact JSON (token-cheap by design).
+from typing import Optional
 import pathlib
 import pandas as pd
 import pyarrow.parquet as pq
@@ -13,27 +14,23 @@ def _table(log: str) -> pd.DataFrame:
     return pq.read_table(p).to_pandas() if p.exists() else pd.DataFrame()
 
 
-def query_logs(ql: dict) -> dict:
+def query_logs(log: str = "conn", where: Optional[dict] = None, columns: Optional[list] = None, limit: int = 20) -> dict:
     """Run a narrow query over one Zeek log.
-    ql = {"log": "conn"|"dns"|"tls"|"http",
-          "where": {"id.orig_h": "10.0.0.5", ...},  # exact matches, AND-ed
-          "columns": [...],                          # optional projection
-          "limit": 20}
-    Returns {count, rows} — compact dicts (token-cheap by design).
+    Args match the tool schema the agent sees: log, where, columns, limit.
     Unknown columns return an explicit error with available column names,
     so the calling agent self-corrects instead of looping.
     """
-    df = _table(ql.get("log", "conn"))
+    df = _table(log)
     if df.empty:
         return {"count": 0, "rows": [], "available_columns": []}
-    where = ql.get("where") or {}
+    where = where or {}
     mauvaises = [k for k in where if k not in df.columns]
     if mauvaises:
         return {"error": f"unknown column(s) {mauvaises}",
                 "available_columns": list(df.columns)}
     for k, v in where.items():
         df = df[df[k] == v]
-    cols = list(ql.get("columns") or [c for c in df.columns if df[c].notna().any()][:10])
+    cols = list(columns or [c for c in df.columns if df[c].notna().any()][:10])
     # toujours inclure les colonnes filtrées (et 'query'/'ts' quand elles existent)
     for k in list(where.keys()) + ["ts", "query"]:
         if k in df.columns and k not in cols:
@@ -41,7 +38,7 @@ def query_logs(ql: dict) -> dict:
     cols = [c for c in cols if c in df.columns]
     return {
         "count": int(len(df)),
-        "rows": df[cols].head(ql.get("limit", 20)).fillna("").to_dict("records"),
+        "rows": df[cols].head(limit).fillna("").to_dict("records"),
     }
 
 
