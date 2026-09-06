@@ -1,4 +1,6 @@
 pandas>=2.0
 pyarrow>=15.0
-# v1.0 — Gemini function calling (optional; v0.1 runs key-less)
-google-genai>=1.0
+# v1.0 — Mistral function calling (free tier: open-mistral-nemo)
+mistralai>=1.10
+# optional — Gemini branch
+# google-genai>=1.0
