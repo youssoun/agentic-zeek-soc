@@ -98,9 +98,9 @@ def mistral_agent_loop(lead: dict, model: str = "mistral-small-latest", max_step
             try:
                 args = json.loads(tc.function.arguments or "{}")
                 print(f"[tour {step + 1}] {fn}({json.dumps(args, ensure_ascii=False)[:100]})")
-                result = DISPATCH[fn](**args) if fn != "write_report" else DISPATCH[fn](args["title"], args["body_md"])
+                result = DISPATCH[fn](**args)
             except Exception as e:  # noqa: BLE001 — l'agent doit voir l'erreur et s'adapter
-                result = {"error": str(e)}
+                result = {"error": str(e), "hint": "re-check the tool parameter schema in the tool description"}
             messages.append({"role": "tool", "name": fn, "tool_call_id": tc.id,
                              "content": json.dumps(result, ensure_ascii=False, default=str)[:4000]})
             if os.environ.get("AZS_DEBUG"):
